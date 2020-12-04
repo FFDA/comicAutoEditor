@@ -7,20 +7,45 @@
 from rarfile import RarFile # for cbr
 from zipfile import ZipFile, ZIP_STORED # for cbz
 from os import listdir, mkdir, walk, sep
-from os.path import expanduser, join, basename
+from os.path import expanduser, join, basename, split
 from sys import exit
 from tempfile import TemporaryDirectory
 
 def check_comic(file, file_name, file_exte):
     ### Opens comic and checks files. Tries to find the one that is added by comic piracy group.
+    ### Also detects if there is a subfolder in archive. Some groups have a subfolder in their comic archive that has their name in it.
+
+    sub_folder_toggle = 0
 
     filename_length_dict = dict() # Dictionary that will be used to add all different files sorted by the length. Idea is that all comic pages names will be the same length.
 
     ## Because zip and rar uses different modules it has to be detected and seperated.
     if file_exte.lower() == "cbz":
         comic = ZipFile(file)
+        for item in comic.namelist():
+            item = split(item)
+            # Splits every filename in the archive. If any of them has a "dirname" it toggles a switch and breaks.
+            if item[0] != "":
+                print("")
+                print("!!!Detected a sub folder in archive file!!!")
+                print("Subfolder will be removed if any images will be chosen to be removed.")
+                print("Comic will still work normaly.")
+                print("")
+                sub_folder_toggle = 1
+                break
     else: 
         comic = RarFile(file)
+        for item in comic.namelist():
+            # Splits every filename in the archive. If any of them has a "dirname" it toggles a switch and breaks.
+            item = split(item)
+            if item[0] != "":
+                print("")
+                print("!!!Detected a sub folder in archive file!!!")
+                print("It will be removed if any images will be removed.")
+                print("Comic will still work normaly.")
+                print("")
+                sub_folder_toggle = 1
+                break
     
     ## Loops though all the files in the comic archive. Key is length of the filename, value - list that contains first filename that has the that length and count how many time that length of file name has been detected.
     for page in comic.namelist():
@@ -38,24 +63,36 @@ def check_comic(file, file_name, file_exte):
     print("Delete item:")
     for item in range(len(sorted_filename_length_dict)):
         print(str(item) + ". " + str(sorted_filename_length_dict[item][1][0]))
+    if sub_folder_toggle == 1:
+        print("v. Delete only subfolder")
     print("x. Skip")
 
     user_choice = input("[<ENTER> default = 0] ") # Saved user choise
 
     ## Sorting user choice.
-    if user_choice.lower() == "x":
-        print("Skipping")
-        pass
-    elif user_choice == "":
-        # Detecting <ENTER>
-        delete_file = sorted_filename_length_dict[0][1][0]
-        print("Deleting: " + delete_file)
-        write_comic(file, file_name, file_exte, delete_file)
-    elif int(user_choice) in range(len(sorted_filename_length_dict)):
-        delete_file = sorted_filename_length_dict[int(user_choice)][1][0]
-        print("Deleting: " + delete_file)
-    else:
-        # Not valid user input
+    try:
+        if user_choice.lower() == "x":
+            print("Skipping")
+            pass
+        elif user_choice.lower() == "v":
+            if sub_folder_toggle == 1:
+                # Detecting user choice to delete subfolder only. Passing empty sting as file that needs to be deleted. That way nothing matching will be found and onyl folder will be removed.
+                write_comic(file, file_name, file_exte, "")
+            else:
+                print("There is no such option for this file. Skipping to next step.")
+        elif user_choice == "":
+            # Detecting <ENTER>
+            delete_file = sorted_filename_length_dict[0][1][0]
+            print("Deleting: " + delete_file)
+            write_comic(file, file_name, file_exte, delete_file)
+        elif int(user_choice) in range(len(sorted_filename_length_dict)):
+            # User's choice where he/she chose to file themselves.
+            delete_file = sorted_filename_length_dict[int(user_choice)][1][0]
+            print("Deleting: " + delete_file)
+        else:
+            # Not valid user input
+            print("There is no such option. Skipping to next step.")
+    except ValueError:
         print("There is no such option. Skipping to next step.")
 
     comic.close()
@@ -79,7 +116,8 @@ def write_comic(file, file_name, file_exte, delete_file):
             if page != delete_file:
                 comic.extract(page, dir) # Extracts file to full path, so if archive has a subfolder it will be created too.
             else:
-                print("Deleted " + delete_file)
+                # print("Deleted " + delete_file) # I might delete this message later
+                pass
 
         for folder in walk(dir):
         ## Goes through directories and files in temp directory.
@@ -89,7 +127,7 @@ def write_comic(file, file_name, file_exte, delete_file):
                 cbz_comic_archive.write(join(folder[0] + sep + page), arcname=basename(page)) 
 
     cbz_comic_archive.close() # Closes new comics archive.
-    print("Saved file: " + comic_save_location)
+    print("Saved file: " + comic_save_location + file_name + "cbz")
 
 current_dir_files = listdir() # Getting all the filenames in current working dir
 
@@ -107,7 +145,6 @@ for file in current_dir_files:
     if file[-3:] == "cbz" or file[-3:] == "cbr":
         file_name = file[:-3] # Variable saves file name
         file_exte = file[-3:] # Variable saves file extention
-        print(file_name)
         print()
         print("*********************")
         print("Working on: " + file)
