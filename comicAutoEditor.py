@@ -63,7 +63,6 @@ def check_comic(file, file_name, file_exte):
 def write_comic(file, file_name, file_exte, delete_file):
     ### Fixind comic file by copying all files to cbz archive skipping the file user wants to delete.
 
-    print("Opening cbz") # Test line. Will be deleted.
     cbz_comic_archive = ZipFile(comic_save_location + file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True)
 
     ## Because zip and rar uses different modules it has to be detected and seperated.
@@ -86,9 +85,10 @@ def write_comic(file, file_name, file_exte, delete_file):
 
         for f in listdir(dir):
         ## Goes through files in temp directory
-            cbz_comic_archive.write(join(temp_dir_path, f))
+            cbz_comic_archive.write(join(temp_dir_path, f), arcname=f)
 
     cbz_comic_archive.close() # Closes new comics archive.
+    print("Saved file: " + comic_save_location)
 
 current_dir_files = listdir() # Getting all the filenames in current working dir
 
