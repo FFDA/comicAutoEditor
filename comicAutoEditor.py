@@ -3,12 +3,13 @@
 #### This program extrackts all cbz and cbr files in the directory one by one, finds files added by release grupe, asks user to choose file to delete or confirm default removes them and compresses them back to cbz. 
 #### Compresses file to cbz, because there is no free implementation of rar compresion because of licensing by the creator.
 #### New file will saved in home directory "comics" folder (~/comics) to skip avoid problems with same filename in one folder. Also user might not want to delete the original archive by runnign this program.
+#### Takes one argument -s (sanitize). Calibre to not take filenames with # in them. If user passes this argument filenames will be sanitized and # removed.
  
 from rarfile import RarFile # for cbr
 from zipfile import ZipFile, ZIP_STORED # for cbz
 from os import listdir, mkdir, walk, sep
 from os.path import expanduser, join, basename, split
-from sys import exit
+from sys import exit, argv
 from tempfile import TemporaryDirectory
 
 def check_comic(file, file_name, file_exte):
@@ -148,6 +149,14 @@ for file in current_dir_files:
         print()
         print("*********************")
         print("Working on: " + file)
+
+        ## Replacing all # in filename, because argument -s was passed.
+        if argv[1] == "-s":
+            file_name = file_name.replace("#", "")
+        else:
+        ## User passed argument that does not exist.
+            print("No such argument. Continuing.")
+
         check_comic(file, file_name, file_exte) # Sends file for processing
 
 exit()
