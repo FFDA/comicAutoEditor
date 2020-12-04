@@ -6,8 +6,8 @@
  
 from rarfile import RarFile # for cbr
 from zipfile import ZipFile, ZIP_STORED # for cbz
-from os import listdir, mkdir
-from os.path import expanduser, abspath, join
+from os import listdir, mkdir, walk, sep
+from os.path import expanduser, join, basename
 from sys import exit
 from tempfile import TemporaryDirectory
 
@@ -73,19 +73,20 @@ def write_comic(file, file_name, file_exte, delete_file):
 
     ## Extracting files from original comic archive and compresing them to new one without the file that user wants to delete. It opens a temp dir that is deleted after use.
     with TemporaryDirectory() as dir:
-
-        temp_dir_path = abspath(dir) # Needed to point to file location
         
         for page in comic.namelist():
-        ## Goes throught every page of orginal archive again. Looks for a filename that matches the one that user wants to delete. Skips it and prints a message that it is deleted. The rest files are saved in temp directory
+        ## Goes through every page of orginal archive again. Looks for a filename that matches the one that user wants to delete. Skips it and prints a message that it is deleted. The rest files are saved in temp directory
             if page != delete_file:
-                comic.extract(page, dir)
+                comic.extract(page, dir) # Extracts file to full path, so if archive has a subfolder it will be created too.
             else:
                 print("Deleted " + delete_file)
 
-        for f in listdir(dir):
-        ## Goes through files in temp directory
-            cbz_comic_archive.write(join(temp_dir_path, f), arcname=f)
+        for folder in walk(dir):
+        ## Goes through directories and files in temp directory.
+            for page in folder[2]:
+                # Walk function returns tuple with tree values, first one (foler[0]) is path to filder and third one (folder[2] is file list.)
+                # This loop goes through every folder of temp dir and and uses full path to point to a file, but tells to use just filename when writing to archive.
+                cbz_comic_archive.write(join(folder[0] + sep + page), arcname=basename(page)) 
 
     cbz_comic_archive.close() # Closes new comics archive.
     print("Saved file: " + comic_save_location)
