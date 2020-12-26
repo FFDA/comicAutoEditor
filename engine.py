@@ -24,30 +24,20 @@ class Engine:
         ## Because zip and rar uses different modules it has to be detected and seperated.
         if file_exte.lower() == "cbz":
             comic = ZipFile(file)
-            for item in comic.namelist():
-                item = split(item)
-                # Splits every filename in the archive. If any of them has a "dirname" it toggles a switch and breaks.
-                if item[0] != "":
-                    print("")
-                    print("!!!Detected a sub folder in archive file!!!")
-                    print("Subfolder will be removed if any images will be chosen to be removed.")
-                    print("Comic will still work normaly.")
-                    print("")
-                    sub_folder_toggle = 1
-                    break
         else: 
             comic = RarFile(file)
-            for item in comic.namelist():
-                # Splits every filename in the archive. If any of them has a "dirname" it toggles a switch and breaks.
-                item = split(item)
-                if item[0] != "":
-                    print("")
-                    print("!!!Detected a sub folder in archive file!!!")
-                    print("It will be removed if any images will be removed.")
-                    print("Comic will still work normaly.")
-                    print("")
-                    sub_folder_toggle = 1
-                    break
+        
+        for item in comic.namelist():
+            # Splits every filename in the archive. If any of them has a "dirname" it toggles a switch and breaks.
+            item = split(item)
+            if item[0] != "":
+                print("")
+                print("!!!Detected a sub folder in archive file!!!")
+                print("It will be removed if any images will be removed.")
+                print("Comic will still work normaly.")
+                print("")
+                sub_folder_toggle = 1
+                break
         
         ## Loops though all the files in the comic archive. Key is length of the filename, value - list that contains first filename that has the that length and count how many time that length of file name has been detected.
         for page in comic.namelist():
