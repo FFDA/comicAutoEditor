@@ -23,6 +23,7 @@ except FileExistsError:
     pass
 
 delete_files = [] # List containing all filenames to delete
+thumbs_db = (0, "") # Tuple for detecting thumbs.db in archive
 
 for file in current_dir_files:
     ## Loops thought all the files and passes the allong if they have "cbz" or "cbr" extention.
@@ -41,14 +42,29 @@ for file in current_dir_files:
             ## User passed argument that does not exist.
                 print("No such argument. Continuing.")
 
-        sorted_filename_length_dict, sub_folder_toggle = engine.check_comic(file, file_name, file_exte) # Sends file for processing amd recieves sorted dictionary with diferent length filenames and sub_folder_toggle value
+        sorted_filename_length_dict, sub_folder_toggle, thumbs_db = engine.check_comic(file, file_name, file_exte) # Sends file for processing amd recieves sorted dictionary with diferent length filenames, sub_folder_toggle value and thumbs_db tuple.
+
+        if sub_folder_toggle == 1:
+            print("")
+            print("!!!Detected a sub folder in archive file!!!")
+            print("It will be removed if any images will be removed.")
+            print("Comic will still work normaly.")
+            print("")
+        
+        if thumbs_db[0] == 1:
+            print("")
+            print("!!!Detected a thumbs.db file in archive file!!!")
+            print("It will be removed if any images will be removed.")
+            print("Comic will still work normaly.")
+            print("")
+            delete_files.append(thumbs_db[1])
 
         ## Promts user to choose what file to delete, by printing sorted dictionary.
         print("Delete item:")
         for item in range(len(sorted_filename_length_dict)):
             print(str(item) + ". " + str(sorted_filename_length_dict[item][1][0]))
-        if sub_folder_toggle == 1:
-            print("v. Only Detele Subfolder")
+        if sub_folder_toggle == 1 or thumbs_db[0] == 1:
+            print("v. Only Detele Subfolder and/or thumbs.db")
         print("x. Skip")
 
         user_choice = input("[<ENTER> default = 0] ") # Saved user choise
@@ -59,7 +75,7 @@ for file in current_dir_files:
                 print("Skipping")
                 pass
             elif user_choice.lower() == "v":
-                if sub_folder_toggle == 1:
+                if sub_folder_toggle == 1 or thumbs_db[0] == 1:
                     # Detecting user choice to delete subfolder only. Passing empty sting as file that needs to be deleted. That way nothing matching will be found and only folder will be removed.
                     engine.write_comic(file, file_name, file_exte, delete_files, comic_save_location)
                 else:

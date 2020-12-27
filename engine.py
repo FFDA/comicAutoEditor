@@ -19,6 +19,7 @@ class Engine:
         ### Also detects if there is a subfolder in archive. Some groups have a subfolder in their comic archive that has their name in it.
 
         sub_folder_toggle = 0
+        thumbs_db = (0, "")
 
         filename_length_dict = dict() # Dictionary that will be used to add all different files sorted by the length. Idea is that all comic pages names will be the same length.
 
@@ -32,17 +33,14 @@ class Engine:
             # Splits every filename in the archive. If any of them has a "dirname" it toggles a switch and breaks.
             item = split(item)
             if item[0] != "":
-                print("")
-                print("!!!Detected a sub folder in archive file!!!")
-                print("It will be removed if any images will be removed.")
-                print("Comic will still work normaly.")
-                print("")
                 sub_folder_toggle = 1
                 break
         
         ## Loops though all the files in the comic archive. Key is length of the filename, value - list that contains first filename that has the that length and count how many time that length of file name has been detected.
         for page in comic.namelist():
-            if page[-3:].lower() == "jpg":
+            if page.lower() == "thumbs.db":
+                thumbs_db = (1, page)
+            elif page[-3:].lower() == "jpg":
                 if len(page) not in filename_length_dict:
                     # If filename length is not in dictionary adds that length as a key and filename and starts count at 1 as value (list)
                     filename_length_dict[len(page)] = [page, 1]
@@ -54,7 +52,7 @@ class Engine:
 
         comic.close()
 
-        return sorted_filename_length_dict, sub_folder_toggle
+        return sorted_filename_length_dict, sub_folder_toggle, thumbs_db
 
     def write_comic(self, file, file_name, file_exte, delete_files, comic_save_location):
         ### Fixind comic file by copying all files to cbz archive skipping the file user wants to delete.
