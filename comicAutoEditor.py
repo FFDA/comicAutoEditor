@@ -22,6 +22,7 @@ except FileExistsError:
     # Folder already exists.
     pass
 
+delete_files = [] # List containing all filenames to delete
 
 for file in current_dir_files:
     ## Loops thought all the files and passes the allong if they have "cbz" or "cbr" extention.
@@ -40,9 +41,9 @@ for file in current_dir_files:
             ## User passed argument that does not exist.
                 print("No such argument. Continuing.")
 
-        sorted_filename_length_dict, sub_folder_toggle = engine.check_comic(file, file_name, file_exte) # Sends file for processing amd recieves sorted dictionary with diferent length filenames in archive
+        sorted_filename_length_dict, sub_folder_toggle = engine.check_comic(file, file_name, file_exte) # Sends file for processing amd recieves sorted dictionary with diferent length filenames and sub_folder_toggle value
 
-            ## Promts user to choose what file to delete, by printing sorted dictionary.
+        ## Promts user to choose what file to delete, by printing sorted dictionary.
         print("Delete item:")
         for item in range(len(sorted_filename_length_dict)):
             print(str(item) + ". " + str(sorted_filename_length_dict[item][1][0]))
@@ -59,19 +60,19 @@ for file in current_dir_files:
                 pass
             elif user_choice.lower() == "v":
                 if sub_folder_toggle == 1:
-                    # Detecting user choice to delete subfolder only. Passing empty sting as file that needs to be deleted. That way nothing matching will be found and onyl folder will be removed.
-                    engine.write_comic(file, file_name, file_exte, "", comic_save_location)
+                    # Detecting user choice to delete subfolder only. Passing empty sting as file that needs to be deleted. That way nothing matching will be found and only folder will be removed.
+                    engine.write_comic(file, file_name, file_exte, delete_files, comic_save_location)
                 else:
                     print("There is no such option for this file. Skipping to next step.")
             elif user_choice == "":
                 # Detecting <ENTER>
-                delete_file = sorted_filename_length_dict[0][1][0]
-                print("Deleting: " + delete_file)
-                engine.write_comic(file, file_name, file_exte, delete_file, comic_save_location)
+                delete_files.append(sorted_filename_length_dict[0][1][0])
+                print("Deleting: " + ", ".join(delete_files))
+                engine.write_comic(file, file_name, file_exte, delete_files, comic_save_location)
             elif int(user_choice) in range(len(sorted_filename_length_dict)):
                 # User's choice where he/she chose to file themselves.
-                delete_file = sorted_filename_length_dict[int(user_choice)][1][0]
-                print("Deleting: " + delete_file)
+                delete_files.append(sorted_filename_length_dict[int(user_choice)][1][0])
+                print("Deleting: " + ", ".join(delete_files))
             else:
                 # Not valid user input
                 print("There is no such option. Skipping to next step.")

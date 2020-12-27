@@ -7,6 +7,7 @@ from zipfile import ZipFile, ZIP_STORED # for cbz
 from os import walk, sep
 from os.path import split, join, basename
 from tempfile import TemporaryDirectory
+from re import compile, IGNORECASE
 
 class Engine:
 
@@ -55,7 +56,7 @@ class Engine:
 
         return sorted_filename_length_dict, sub_folder_toggle
 
-    def write_comic(self, file, file_name, file_exte, delete_file, comic_save_location):
+    def write_comic(self, file, file_name, file_exte, delete_files, comic_save_location):
         ### Fixind comic file by copying all files to cbz archive skipping the file user wants to delete.
 
         cbz_comic_archive = ZipFile(comic_save_location + file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True)
@@ -71,7 +72,7 @@ class Engine:
             
             for page in comic.namelist():
             ## Goes through every page of orginal archive again. Looks for a filename that matches the one that user wants to delete. Skips it and prints a message that it is deleted. The rest files are saved in temp directory
-                if page != delete_file:
+                if page not in delete_files:
                     comic.extract(page, dir) # Extracts file to full path, so if archive has a subfolder it will be created too.
                 else:
                     # print("Deleted " + delete_file) # I might delete this message later
@@ -80,7 +81,7 @@ class Engine:
             for folder in walk(dir):
             ## Goes through directories and files in temp directory.
                 for page in folder[2]:
-                    # Walk function returns tuple with tree values, first one (foler[0]) is path to filder and third one (folder[2] is file list.)
+                    # Walk function returns tuple with three values, first one (foler[0]) is path to folder and third one (folder[2] is file list.)
                     # This loop goes through every folder of temp dir and and uses full path to point to a file, but tells to use just filename when writing to archive.
                     cbz_comic_archive.write(join(folder[0] + sep + page), arcname=basename(page)) 
 
