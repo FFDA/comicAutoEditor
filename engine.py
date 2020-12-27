@@ -85,3 +85,20 @@ class Engine:
 
         cbz_comic_archive.close() # Closes new comics archive.
         print("Saved file: " + comic_save_location + file_name + "cbz")
+
+    def print_archive_files(self, file, file_name, file_exte):
+        ### Gets all files in the archive and returns them
+
+        archive_file_list = []
+
+        ## Because zip and rar uses different modules it has to be detected and seperated.
+        if file_exte.lower() == "cbz":
+            comic = ZipFile(file)
+        else: 
+            comic = RarFile(file)
+        
+        for item in comic.namelist():
+        ## Appends every filename in the archive to the archive_file_list list
+            archive_file_list.append(item)
+
+        return archive_file_list
