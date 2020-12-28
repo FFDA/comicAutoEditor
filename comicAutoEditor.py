@@ -14,15 +14,21 @@ engine = Engine()
 
 def user_promt_for_deletion():
     ## Promts user to choose what file to delete, by printing sorted dictionary containing some filenames that might be good for deleting and options for user to choose.
+    print("............")
+    print("Working on: " + file)
+    print("")
 
     print("Delete item:")
     for item in range(len(sorted_filename_length_dict)):
         print(str(item) + ". " + str(sorted_filename_length_dict[item][1][0]))
+    print("............")
     if sub_folder_toggle == 1 or thumbs_db[0] == 1:
         print("v. Only Detele Subfolder and/or thumbs.db")
     print("a. Print all files in comic archive")
+    if file_exte == "cbr":
+        print("q. Only convert archive to cbz")
     print("x. Skip")
-
+    print("............")
     print("")
 
     user_choice_parser(input("[<ENTER> default = 0] ")) # Sending user choice to user_choice_parser function.
@@ -47,6 +53,11 @@ def user_choice_parser(user_choice):
             print("")
             print("Do you want to delete any of these files?")
             extra_file_to_delete(archive_file_list)
+        elif user_choice.lower() == "q":
+            if file_exte == "cbr":
+                engine.convert_to_cbz(file, file_name, comic_save_location)
+            else:
+                print("You shouldn't press random buttons. Skipping.")
         elif user_choice == "":
             # Detecting <ENTER>
             delete_files.append(sorted_filename_length_dict[0][1][0])
@@ -74,21 +85,21 @@ def extra_file_to_delete(archive_file_list):
             # If chosen filename is not in delete_files list
                 delete_files.append(archive_file_list[int(answer)]) # Adding file to delete_files list
                 print("Marked " + archive_file_list[int(answer)] + " for deletion.")
-
             else:
                 print("File " + archive_file_list[int(answer)] + " is already marked for deletion.")
             print("")
             print("Another file?")
         else:
-            print("There is no such file. Try again or press <ENTER>")
+            print("There is no such file.")
         print("Type number of the file or <ENTER> to continue.")
         answer = input()
     
     # Prints all files that a currently marked for deletion
-    print("Files marked for deletion:")
-    for d_file in delete_files:
-        print(d_file)
-    print("")
+    if len(delete_files) > 0:
+        print("Files marked for deletion:")
+        for d_file in delete_files:
+            print(d_file)
+        print("")
 
     user_promt_for_deletion() # Printing previous menu.
 
@@ -103,10 +114,11 @@ except FileExistsError:
     # Folder already exists.
     pass
 
-delete_files = [] # List containing all filenames to delete
-thumbs_db = (0, "") # Tuple for detecting thumbs.db in archive
-
 for file in current_dir_files:
+
+    delete_files = [] # List containing all filenames to delete
+    thumbs_db = (0, "") # Tuple for detecting thumbs.db in archive
+
     ## Loops thought all the files and passes the allong if they have "cbz" or "cbr" extention.
     if file[-3:] == "cbz" or file[-3:] == "cbr":
         file_name = file[:-3] # Variable saves file name

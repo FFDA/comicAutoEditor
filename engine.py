@@ -61,9 +61,9 @@ class Engine:
 
         ## Because zip and rar uses different modules it has to be detected and seperated.
         if file_exte.lower() == "cbz":
-            comic = ZipFile(file)
+            comic = ZipFile(file, mode="r")
         else: 
-            comic = RarFile(file)
+            comic = RarFile(file, mode="r")
 
         ## Extracting files from original comic archive and compresing them to new one without the file that user wants to delete. It opens a temp dir that is deleted after use.
         with TemporaryDirectory() as dir:
@@ -81,7 +81,7 @@ class Engine:
                 for page in folder[2]:
                     # Walk function returns tuple with three values, first one (foler[0]) is path to folder and third one (folder[2] is file list.)
                     # This loop goes through every folder of temp dir and and uses full path to point to a file, but tells to use just filename when writing to archive.
-                    cbz_comic_archive.write(join(folder[0] + sep + page), arcname=basename(page)) 
+                    cbz_comic_archive.write(join(folder[0], page), arcname=basename(page)) 
 
         cbz_comic_archive.close() # Closes new comics archive.
         print("Saved file: " + comic_save_location + file_name + "cbz")
@@ -102,3 +102,27 @@ class Engine:
             archive_file_list.append(item)
 
         return archive_file_list
+
+    def convert_to_cbz(self, file, file_name, comic_save_location):
+        ### This function only converts comic's archive to cbz without deleting files or folders
+        ### I do not know what will happen if there would be two folders inside archive. Maybe one day I'll find out.
+
+        cbz_comic_archive = ZipFile(comic_save_location + file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True)
+
+        with TemporaryDirectory() as dir:
+            ## Opens temporary directory named dir, that will be deleted when everything inside with statement is finished
+            
+            comic = RarFile(file, mode="r") # Opening rar comic archive in read mode
+            comic.extractall(path=dir) # Extracting every file to temporary directory
+            
+            base = "" # To save folder if one exists.
+
+            for folder in walk(dir):
+            ## Looping thought all folders/files
+                print("Katalogas")
+                if folder[1] != []:
+                    base = folder[1][0]
+                else:
+                    for page in folder[2]:
+                        # Adding every file in temporary dir to the archive
+                        cbz_comic_archive.write(join(folder[0], page), arcname=join(base + sep + page))
