@@ -4,7 +4,7 @@ This script removes unwanted images from comics archives (cbr, cbz) by creating 
 
 All comic archives created with this script will be cbz (zip based), because of rar licensing.
 
-It can also remove part of the filename of pages in the archive.
+It can also remove or replace part of the filename of pages in the archive.
 
 # How to
 

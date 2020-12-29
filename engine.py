@@ -86,7 +86,7 @@ class Engine:
                         cbz_comic_archive.write(join(folder[0], page), arcname=basename(page)) 
                     else:
                         # If list remove_from_filename has at least one element it will remove that part from the filename when writing it to archive if it can find it.
-                        cbz_comic_archive.write(join(folder[0], page), arcname=basename(page.replace(remove_from_filename[0], "")))
+                        cbz_comic_archive.write(join(folder[0], page), arcname=basename(page.replace(remove_from_filename[0], remove_from_filename[1])))
 
         cbz_comic_archive.close() # Closes new comics archive.
         print("Saved file: " + comic_save_location + file_name + "cbz")

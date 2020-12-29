@@ -20,14 +20,13 @@ def user_promt_for_deletion():
     print("Delete item:")
     for item in range(len(sorted_filename_length_dict)):
         print(str(item) + ". " + str(sorted_filename_length_dict[item][1][0]))
-    # print("............")
     print("")
     if sub_folder_toggle == 1 or thumbs_db[0] == 1:
         print("v. Only Detele Subfolder and/or thumbs.db")
     print("a. Print all files in comic archive and choose what to delete")
     if file_exte == "cbr":
         print("q. Only convert archive to cbz")
-    print("d. Delete part of the filename from pages")
+    print("d. Delete or replace part of the filename from pages")
     print("x. Skip")
     print("............")
     print("")
@@ -42,8 +41,7 @@ def user_choice_parser(user_choice):
             pass
         elif user_choice.lower() == "d":
             # User chose to remove part of the page filename. This elif statement asks user to write what needs to be deleted and appends it to remove_from_filename list.
-            print("Type/copy part of the string you want to remove:")
-            remove_from_filename.append(input())
+            edit_page_filename()
             user_promt_for_deletion()
         elif user_choice.lower() == "a":
             # User chose to print all the files of the archive. Prints files, and askes user to choose any file for deletion.
@@ -71,8 +69,6 @@ def user_choice_parser(user_choice):
                 delete_files.append(chosen_file)
             else:
                 print("This file already marked for deletion.")            
-            # delete_files.append(sorted_filename_length_dict[0][1][0])
-            # print("Deleting: " + ", ".join(delete_files))
             print("Deleting: ")
             print_file_list(delete_files)
             engine.write_comic(file, file_name, file_exte, delete_files, remove_from_filename, comic_save_location)
@@ -83,7 +79,6 @@ def user_choice_parser(user_choice):
                 delete_files.append(chosen_file)
             else:
                 print("This file already marked for deletion.")
-            # print("Deleting: " + ", ".join(delete_files))
             print("Deleting:")
             print_file_list(delete_files)
             engine.write_comic(file, file_name, file_exte, delete_files, remove_from_filename, comic_save_location)
@@ -126,6 +121,22 @@ def print_file_list(file_list):
         print(page)
     print("")
 
+def edit_page_filename():
+    ### This function gets information from user for editing page filenames
+    print("Do you want to remove or replace part of the filename?")
+    print("1. Remove")
+    print("2. Replace")
+    chosen_option = input()
+    if chosen_option == "1":
+        print("Type/copy part of the string you want to remove:")
+        remove_from_filename.append(input())
+        remove_from_filename.append("")
+    elif chosen_option == "2":
+        print("Type/copy part of the string you want to replace:")
+        remove_from_filename.append(input())
+        print("Type/copy part of the string you want to replace it with:")
+        remove_from_filename.append(input())
+
 current_dir_files = listdir() # Getting all the filenames in current working dir
 
 ## Creates ~/Comics directory if it doesn't exits.
@@ -140,7 +151,7 @@ for file in current_dir_files:
 
     delete_files = [] # List containing all filenames to delete
     thumbs_db = (0, "") # Tuple for detecting thumbs.db in archive
-    remove_from_filename = [] # List for string that will be removed from page's filname if user provides it. Only first element will be used, other will be ignored.
+    remove_from_filename = [] # List for strings that will be removed from page's filename if user provides it. First tring is used to search for the part that needs to be deleted and the second, if provided, will be used to replace previous string in filename.
 
     ## Loops thought all the files and passes the allong if they have "cbz" or "cbr" extention.
     if file[-3:] == "cbz" or file[-3:] == "cbr":
