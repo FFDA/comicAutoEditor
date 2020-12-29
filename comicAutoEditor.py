@@ -20,10 +20,11 @@ def user_promt_for_deletion():
     print("Delete item:")
     for item in range(len(sorted_filename_length_dict)):
         print(str(item) + ". " + str(sorted_filename_length_dict[item][1][0]))
-    print("............")
+    # print("............")
+    print("")
     if sub_folder_toggle == 1 or thumbs_db[0] == 1:
         print("v. Only Detele Subfolder and/or thumbs.db")
-    print("a. Print all files in comic archive")
+    print("a. Print all files in comic archive and choose what to delete")
     if file_exte == "cbr":
         print("q. Only convert archive to cbz")
     print("d. Delete part of the filename from pages")
@@ -65,13 +66,27 @@ def user_choice_parser(user_choice):
                 print("There is no such option for this file. Skipping to next step.")
         elif user_choice == "":
             # Detecting <ENTER>
-            delete_files.append(sorted_filename_length_dict[0][1][0])
-            print("Deleting: " + ", ".join(delete_files))
+            chosen_file = sorted_filename_length_dict[0][1][0]
+            if chosen_file not in delete_files:
+                delete_files.append(chosen_file)
+            else:
+                print("This file already marked for deletion.")            
+            # delete_files.append(sorted_filename_length_dict[0][1][0])
+            # print("Deleting: " + ", ".join(delete_files))
+            print("Deleting: ")
+            print_file_list(delete_files)
             engine.write_comic(file, file_name, file_exte, delete_files, remove_from_filename, comic_save_location)
         elif int(user_choice) in range(len(sorted_filename_length_dict)):
             # User's choice where he/she chose to file themselves.
-            delete_files.append(sorted_filename_length_dict[int(user_choice)][1][0])
-            print("Deleting: " + ", ".join(delete_files))
+            chosen_file = sorted_filename_length_dict[int(user_choice)][1][0]
+            if chosen_file not in delete_files:
+                delete_files.append(chosen_file)
+            else:
+                print("This file already marked for deletion.")
+            # print("Deleting: " + ", ".join(delete_files))
+            print("Deleting:")
+            print_file_list(delete_files)
+            engine.write_comic(file, file_name, file_exte, delete_files, remove_from_filename, comic_save_location)
         else:
             # Not valid user input
             print("There is no such option. Skipping to next step.")
@@ -102,11 +117,14 @@ def extra_file_to_delete(archive_file_list):
     # Prints all files that a currently marked for deletion
     if len(delete_files) > 0:
         print("Files marked for deletion:")
-        for d_file in delete_files:
-            print(d_file)
-        print("")
+        print_file_list(delete_files)
 
     user_promt_for_deletion() # Printing previous menu.
+
+def print_file_list(file_list):
+    for page in file_list:
+        print(page)
+    print("")
 
 current_dir_files = listdir() # Getting all the filenames in current working dir
 
