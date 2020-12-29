@@ -54,7 +54,7 @@ class Engine:
 
         return sorted_filename_length_dict, sub_folder_toggle, thumbs_db
 
-    def write_comic(self, file, file_name, file_exte, delete_files, comic_save_location):
+    def write_comic(self, file, file_name, file_exte, delete_files, remove_from_filename, comic_save_location):
         ### Fixind comic file by copying all files to cbz archive skipping the file user wants to delete.
 
         cbz_comic_archive = ZipFile(comic_save_location + file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True)
@@ -81,7 +81,12 @@ class Engine:
                 for page in folder[2]:
                     # Walk function returns tuple with three values, first one (foler[0]) is path to folder and third one (folder[2] is file list.)
                     # This loop goes through every folder of temp dir and and uses full path to point to a file, but tells to use just filename when writing to archive.
-                    cbz_comic_archive.write(join(folder[0], page), arcname=basename(page)) 
+                    # It also removes part of the filename if user provides a string for it.
+                    if len(remove_from_filename) == 0:
+                        cbz_comic_archive.write(join(folder[0], page), arcname=basename(page)) 
+                    else:
+                        # If list remove_from_filename has at least one element it will remove that part from the filename when writing it to archive if it can find it.
+                        cbz_comic_archive.write(join(folder[0], page), arcname=basename(page.replace(remove_from_filename[0], "")))
 
         cbz_comic_archive.close() # Closes new comics archive.
         print("Saved file: " + comic_save_location + file_name + "cbz")

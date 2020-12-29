@@ -17,7 +17,6 @@ def user_promt_for_deletion():
     print("............")
     print("Working on: " + file)
     print("")
-
     print("Delete item:")
     for item in range(len(sorted_filename_length_dict)):
         print(str(item) + ". " + str(sorted_filename_length_dict[item][1][0]))
@@ -27,6 +26,7 @@ def user_promt_for_deletion():
     print("a. Print all files in comic archive")
     if file_exte == "cbr":
         print("q. Only convert archive to cbz")
+    print("d. Delete part of the filename from pages")
     print("x. Skip")
     print("............")
     print("")
@@ -39,12 +39,11 @@ def user_choice_parser(user_choice):
         if user_choice.lower() == "x":
             print("Skipping")
             pass
-        elif user_choice.lower() == "v":
-            if sub_folder_toggle == 1 or thumbs_db[0] == 1:
-                # Detecting user choice to delete subfolder only. Passing empty sting as file that needs to be deleted. That way nothing matching will be found and only folder will be removed.
-                engine.write_comic(file, file_name, file_exte, delete_files, comic_save_location)
-            else:
-                print("There is no such option for this file. Skipping to next step.")
+        elif user_choice.lower() == "d":
+            # User chose to remove part of the page filename. This elif statement asks user to write what needs to be deleted and appends it to remove_from_filename list.
+            print("Type/copy part of the string you want to remove:")
+            remove_from_filename.append(input())
+            user_promt_for_deletion()
         elif user_choice.lower() == "a":
             # User chose to print all the files of the archive. Prints files, and askes user to choose any file for deletion.
             archive_file_list = engine.print_archive_files(file, file_name, file_exte) # Get's archives file list from engine.py function
@@ -58,11 +57,17 @@ def user_choice_parser(user_choice):
                 engine.convert_to_cbz(file, file_name, comic_save_location)
             else:
                 print("You shouldn't press random buttons. Skipping.")
+        elif user_choice.lower() == "v":
+            if sub_folder_toggle == 1 or thumbs_db[0] == 1:
+                # Detecting user choice to delete subfolder only. Passing empty sting as file that needs to be deleted. That way nothing matching will be found and only folder will be removed.
+                engine.write_comic(file, file_name, file_exte, delete_files, remove_from_filename, comic_save_location)
+            else:
+                print("There is no such option for this file. Skipping to next step.")
         elif user_choice == "":
             # Detecting <ENTER>
             delete_files.append(sorted_filename_length_dict[0][1][0])
             print("Deleting: " + ", ".join(delete_files))
-            engine.write_comic(file, file_name, file_exte, delete_files, comic_save_location)
+            engine.write_comic(file, file_name, file_exte, delete_files, remove_from_filename, comic_save_location)
         elif int(user_choice) in range(len(sorted_filename_length_dict)):
             # User's choice where he/she chose to file themselves.
             delete_files.append(sorted_filename_length_dict[int(user_choice)][1][0])
@@ -103,7 +108,6 @@ def extra_file_to_delete(archive_file_list):
 
     user_promt_for_deletion() # Printing previous menu.
 
-
 current_dir_files = listdir() # Getting all the filenames in current working dir
 
 ## Creates ~/Comics directory if it doesn't exits.
@@ -118,9 +122,11 @@ for file in current_dir_files:
 
     delete_files = [] # List containing all filenames to delete
     thumbs_db = (0, "") # Tuple for detecting thumbs.db in archive
+    remove_from_filename = [] # List for string that will be removed from page's filname if user provides it. Only first element will be used, other will be ignored.
 
     ## Loops thought all the files and passes the allong if they have "cbz" or "cbr" extention.
     if file[-3:] == "cbz" or file[-3:] == "cbr":
+
         file_name = file[:-3] # Variable saves file name
         file_exte = file[-3:] # Variable saves file extention
         print()
