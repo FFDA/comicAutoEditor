@@ -1,20 +1,26 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 
 ### This file contains all functions that do actual work for comicAUtoEditor
 
 from rarfile import RarFile # for cbr
 from zipfile import ZipFile, ZIP_STORED # for cbz
-from os import walk, sep
-from os.path import split, join, basename
+from os import walk, sep, mkdir
+from os.path import split, join, basename, expanduser
 from tempfile import TemporaryDirectory
 from re import compile, IGNORECASE
 
 class Engine:
 
     def __init__(self):
-        pass
+        ## Creates ~/Comics directory if it doesn't exits.
+        self.comic_save_location = expanduser("~") + "/Comics/" # Creating a path for the folder to create.
+        try:
+            mkdir(self.comic_save_location)
+        except FileExistsError:
+            # Folder already exists.
+            pass
 
-    def check_comic(self, file, file_name, file_exte):
+    def check_comic(self, comic_file, comic_file_name, comic_file_exte):
         ### Opens comic and checks files. Tries to find the one that is added by comic piracy group.
         ### Also detects if there is a subfolder in archive. Some groups have a subfolder in their comic archive that has their name in it.
 
@@ -24,10 +30,10 @@ class Engine:
         filename_length_dict = dict() # Dictionary that will be used to add all different files sorted by the length. Idea is that all comic pages names will be the same length.
 
         ## Because zip and rar uses different modules it has to be detected and seperated.
-        if file_exte.lower() == "cbz":
-            comic = ZipFile(file)
+        if comic_file_exte.lower() == "cbz":
+            comic = ZipFile(comic_file)
         else: 
-            comic = RarFile(file)
+            comic = RarFile(comic_file)
         
         for item in comic.namelist():
             # Splits every filename in the archive. If any of them has a "dirname" it toggles a switch and breaks.
@@ -54,16 +60,17 @@ class Engine:
 
         return sorted_filename_length_dict, sub_folder_toggle, thumbs_db
 
-    def write_comic(self, file, file_name, file_exte, delete_files, remove_from_filename, comic_save_location):
+    def write_comic(self, comic_file, comic_file_name, comic_file_exte, delete_files, remove_from_filename):
         ### Fixind comic file by copying all files to cbz archive skipping the file user wants to delete.
 
-        cbz_comic_archive = ZipFile(comic_save_location + file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True)
+        cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True)
+        # cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True) # Commented out, because on python3.6 compresslevel and strict_timestamps are not supported
 
         ## Because zip and rar uses different modules it has to be detected and seperated.
-        if file_exte.lower() == "cbz":
-            comic = ZipFile(file, mode="r")
+        if comic_file_exte.lower() == "cbz":
+            comic = ZipFile(comic_file, mode="r")
         else: 
-            comic = RarFile(file, mode="r")
+            comic = RarFile(comic_file, mode="r")
 
         ## Extracting files from original comic archive and compresing them to new one without the file that user wants to delete. It opens a temp dir that is deleted after use.
         with TemporaryDirectory() as dir:
@@ -89,18 +96,18 @@ class Engine:
                         cbz_comic_archive.write(join(folder[0], page), arcname=basename(page.replace(remove_from_filename[0], remove_from_filename[1])))
 
         cbz_comic_archive.close() # Closes new comics archive.
-        print("Saved file: " + comic_save_location + file_name + "cbz")
+        print("Saved file: " + self.comic_save_location + comic_file_name + "cbz")
 
-    def print_archive_files(self, file, file_name, file_exte):
+    def print_archive_files(self, comic_file, comic_file_name, comic_file_exte):
         ### Gets all files in the archive and returns them
 
         archive_file_list = []
 
         ## Because zip and rar uses different modules it has to be detected and seperated.
-        if file_exte.lower() == "cbz":
-            comic = ZipFile(file)
+        if comic_file_exte.lower() == "cbz":
+            comic = ZipFile(comic_file)
         else: 
-            comic = RarFile(file)
+            comic = RarFile(comic_file)
         
         for item in comic.namelist():
         ## Appends every filename in the archive to the archive_file_list list
@@ -108,16 +115,17 @@ class Engine:
 
         return archive_file_list
 
-    def convert_to_cbz(self, file, file_name, comic_save_location):
+    def convert_to_cbz(self, comic_file, comic_file_name):
         ### This function only converts comic's archive to cbz without deleting files or folders
         ### I do not know what will happen if there would be two folders inside archive. Maybe one day I'll find out.
 
-        cbz_comic_archive = ZipFile(comic_save_location + file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True)
+        cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True)
+        # cbz_comic_archive = ZipFile(comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True) # Commented out, because on python3.6 compresslevel and strict_timestamps are not supported
 
         with TemporaryDirectory() as dir:
             ## Opens temporary directory named dir, that will be deleted when everything inside with statement is finished
             
-            comic = RarFile(file, mode="r") # Opening rar comic archive in read mode
+            comic = RarFile(comic_file, mode="r") # Opening rar comic archive in read mode
             comic.extractall(path=dir) # Extracting every file to temporary directory
             
             base = "" # To save folder if one exists.
