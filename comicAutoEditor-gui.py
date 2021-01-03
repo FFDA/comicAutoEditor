@@ -5,8 +5,11 @@ from sys import argv, exit
 
 from os.path import expanduser, split
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QDesktopWidget, QGridLayout, QVBoxLayout, QLabel, QPushButton, QGroupBox, QCheckBox, QLineEdit, QTableWidget, QTableView, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QDesktopWidget, QGridLayout, QVBoxLayout, QLabel, QPushButton, QGroupBox, QCheckBox, QLineEdit, QTableWidget, QTableView, QFileDialog, QTableWidgetItem, QAbstractScrollArea
 from PyQt5.QtCore import Qt
+
+from engine import Engine
+engine = Engine()
 
 class ComicAutoEditorGui(QMainWindow):
     ## Main class that will have all the widgets for the program
@@ -24,6 +27,9 @@ class ComicAutoEditorGui(QMainWindow):
         self.comic_file = ""
         self.comic_file_name = ""
         self.comic_file_exte = ""
+        self.sorted_filename_length_dict = dict()
+        self.sub_folder_toggle = 0
+        self.thumbs_db = (0, "")
 
     def center(self):
         # Copied this function from https://gist.github.com/saleph/163d73e0933044d0e2c4
@@ -77,11 +83,13 @@ class MainWidget(QWidget):
         page_filename_groupbox_layout.addWidget(page_filename_replace_line_edit)
         page_filename_groupbox.setLayout(page_filename_groupbox_layout)
 
-        archive_file_list = QTableWidget()
-        archive_file_list.setColumnCount(2)
-        archive_file_list.horizontalHeader().setStretchLastSection(True)
+        self.comic_file_table = QTableWidget()
+        self.comic_file_table.setColumnCount(2)
+        self.comic_file_table.horizontalHeader().hide()
+        self.comic_file_table.verticalHeader().hide()
+        self.comic_file_table.resizeColumnToContents(0)
+        self.comic_file_table.horizontalHeader().setStretchLastSection(True)
 
-        # tool_tip_button_convert_to_cbz = QToolTip("Will not change content to of the archive")
         self.button_convert_to_cbz = QPushButton("Convert to CBZ")
         self.button_convert_to_cbz.setToolTip("Will not change content of the archive.")
         self.button_convert_to_cbz.setEnabled(False)
@@ -101,7 +109,7 @@ class MainWidget(QWidget):
         layout.addWidget(self.label_filename, 0, 0, 1, 6)
         layout.addWidget(button_select_comic, 0, 6, 1, 1)
         layout.addWidget(page_filename_groupbox, 1, 0, 3, 7)
-        layout.addWidget(archive_file_list, 5, 0, 8, 5)
+        layout.addWidget(self.comic_file_table, 5, 0, 8, 6)
         layout.addWidget(self.button_convert_to_cbz, 10, 6, 1, 1)
         layout.addWidget(self.button_remove_subfolder_thumbs, 11, 6 , 1, 1)
         layout.addWidget(self.button_fix_comic, 12, 6, 1, 1)
@@ -111,15 +119,29 @@ class MainWidget(QWidget):
     def choose_comic_file(self):
         ## Prompts user to select a file and checks selected file. Set's variables used by other functions later.
 
-        chosen_file = QFileDialog.getOpenFileName(self, "Choose Comic File", expanduser("~"), "Comics (*.cbr *.cbz)")[0] # Prompts user to select comic file and saves result to variable
+        # chosen_file = QFileDialog.getOpenFileName(self, "Choose Comic File", expanduser("~"), "Comics (*.cbr *.cbz)")[0] # Prompts user to select comic file and saves result to variable
+        chosen_file = QFileDialog.getOpenFileName(self, "Choose Comic File", expanduser("/mnt/Parsiusta/"), "Comics (*.cbr *.cbz)")[0] # Trinti
         
         if chosen_file != "": # Checks if user actually selected a file
+
+            # Resetting all variables for new file
+            self.comic_file = ""
+            self.comic_file_name = ""
+            self.comic_file_exte = ""
+            self.sorted_filename_length_dict = dict()
+            self.sub_folder_toggle = 0
+            self.thumbs_db = (0, "")
+
+            # Disabling all buttons for new file
+            self.button_convert_to_cbz.setEnabled(False)
+            self.button_remove_subfolder_thumbs.setEnabled(False)
+            self.button_fix_comic.setEnabled(False)
 
             chosen_file_exte = split(chosen_file)[1][-3:].lower() # Saves user's chosen's file extention to a variable
 
             if chosen_file_exte == "cbz" or chosen_file_exte == "cbr":
-                # Checks if user's selected file actually ends with.
-                # Set's variables, shows message to user with file name and enables buttons if True
+                ## Checks if user's selected file actually ends with.
+                ## Set's variables, shows message to user with file name and enables buttons if True
                 self.comic_file = chosen_file
                 self.comic_file_name = split(self.comic_file)[1][:-3]
                 self.comic_file_exte = chosen_file_exte
@@ -127,15 +149,45 @@ class MainWidget(QWidget):
                 # Printin file that is being worked on.
                 self.label_filename.setText(self.comic_file_name + self.comic_file_exte)
 
-                # Enableing buttons
-                self.button_convert_to_cbz.setEnabled(True)
-                self.button_remove_subfolder_thumbs.setEnabled(True)
+                self.label_message.clear() # Clears message in case user selected a not comic file previously or working with multiple file in a row.
+
+                # Checking if comic arhcive is rar file. If true enabling "Convert to CBZ button"
+                if self.comic_file_exte == "cbr":
+                    self.button_convert_to_cbz.setEnabled(True)
+
+                # Getting more variables that will be used to by other functions. For more info check engine.check_comic.
+                self.sorted_filename_length_dict, self.sub_folder_toggle, self.thumbs_db = engine.check_comic(self.comic_file, self.comic_file_name, self.comic_file_exte)
+
+                # Enabling button "Remove Trash" if toggles are switched by check_engine funcktion
+                if self.sub_folder_toggle == 1 or self.thumbs_db[0] == 1:
+                    self.button_remove_subfolder_thumbs.setEnabled(True)
+                
+                # Enabling "Fix Comic" button
                 self.button_fix_comic.setEnabled(True)
 
                 self.label_message.clear() # Clears message in case user selected a not comic file previously or working with multiple file in a row.
+
+                self.display_comic_files()
+
             else:
-                # Prints a message to user if he selected not comic file.
+                ## Prints a message to user if he selected not comic file.
                 self.label_message.setText("You have to select cbr or cbz file.")
+
+    def display_comic_files(self):
+    ## Adds all comic archive files to the QtableWidget and marks checkmarks as suggestion based on sorted_file_length_dict
+
+        comic_file_list = engine.archive_file_list(self.comic_file, self.comic_file_name, self.comic_file_exte) # Getting archive's file list from engine.
+        self.comic_file_table.setRowCount(len(comic_file_list)) # Setting tables row count to the count of files inside archive
+        
+        for item in range(len(comic_file_list)):
+            ## Adding every item from archive to the table
+            item_checkbox_detele = QTableWidgetItem()
+            item_checkbox_detele.setCheckState(Qt.Checked) # Setting checkmark as checked
+            item_checkbox_detele.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) # Checkmark's cell not editable, but state still can be changed.
+            item_filename = QTableWidgetItem(split(comic_file_list[item])[1]) # Getting just a filename, without a path to the file in archive.
+            item_filename.setFlags(Qt.ItemIsEnabled) # Filename's cell not editable
+            self.comic_file_table.setItem(item, 0, item_checkbox_detele)
+            self.comic_file_table.setItem(item, 1, item_filename)
 
 if __name__ == "__main__":
     ComicAutoEditor = QApplication(argv)

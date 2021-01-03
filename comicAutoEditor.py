@@ -44,7 +44,7 @@ def user_choice_parser(user_choice):
             user_promt_for_deletion()
         elif user_choice.lower() == "a":
             # User chose to print all the files of the archive. Prints files, and askes user to choose any file for deletion.
-            archive_file_list = engine.print_archive_files(comic_file, comic_file_name, comic_file_exte) # Get's archives file list from engine.py function
+            archive_file_list = engine.archive_file_list(comic_file, comic_file_name, comic_file_exte) # Get's archives file list from engine.py function
             for item in range(len(archive_file_list)):
                 print(str(item) + ". " + archive_file_list[item])
             print("")
