@@ -63,8 +63,8 @@ class Engine:
     def write_comic(self, comic_file, comic_file_name, comic_file_exte, delete_files, remove_from_filename):
         ### Fixind comic file by copying all files to cbz archive skipping the file user wants to delete.
 
-        cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True)
-        # cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True) # Commented out, because on python3.6 compresslevel and strict_timestamps are not supported
+        cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + ".cbz", mode="w", compression=ZIP_STORED, allowZip64=True)
+        # cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + ".cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True) # Commented out, because on python3.6 compresslevel and strict_timestamps are not supported
 
         ## Because zip and rar uses different modules it has to be detected and seperated.
         if comic_file_exte.lower() == ".cbz":
@@ -120,7 +120,7 @@ class Engine:
         ### I do not know what will happen if there would be two folders inside archive. Maybe one day I'll find out.
 
         cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + ".cbz", mode="w", compression=ZIP_STORED, allowZip64=True)
-        # cbz_comic_archive = ZipFile(comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True) # Commented out, because on python3.6 compresslevel and strict_timestamps are not supported
+        # cbz_comic_archive = ZipFile(comic_save_location + comic_file_name + ".cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True) # Commented out, because on python3.6 compresslevel and strict_timestamps are not supported
 
         with TemporaryDirectory() as dir:
             ## Opens temporary directory named dir, that will be deleted when everything inside with statement is finished
