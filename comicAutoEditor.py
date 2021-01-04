@@ -23,7 +23,7 @@ def user_promt_for_deletion():
     if sub_folder_toggle == 1 or thumbs_db[0] == 1:
         print("v. Only Detele Subfolder and/or thumbs.db")
     print("a. Print all files in comic archive and choose what to delete")
-    if comic_file_exte == "cbr":
+    if comic_file_exte == ".cbr":
         print("q. Only convert archive to cbz")
     print("d. Delete or replace part of the filename from pages")
     print("x. Skip")
@@ -51,7 +51,7 @@ def user_choice_parser(user_choice):
             print("Do you want to delete any of these files?")
             extra_file_to_delete(archive_file_list)
         elif user_choice.lower() == "q":
-            if comic_file_exte == "cbr":
+            if comic_file_exte == ".cbr":
                 engine.convert_to_cbz(comic_file, comic_file_name)
             else:
                 print("You shouldn't press random buttons. Skipping.")
@@ -59,6 +59,7 @@ def user_choice_parser(user_choice):
             if sub_folder_toggle == 1 or thumbs_db[0] == 1:
                 # Detecting user choice to delete subfolder only. Passing empty sting as file that needs to be deleted. That way nothing matching will be found and only folder will be removed.
                 engine.write_comic(comic_file, comic_file_name, comic_file_exte, delete_files, remove_from_filename)
+                print("Saved file: " + comic_file_name + ".cbz")
             else:
                 print("There is no such option for this file. Skipping to next step.")
         elif user_choice == "":
@@ -71,6 +72,7 @@ def user_choice_parser(user_choice):
             print("Deleting: ")
             print_file_list(delete_files)
             engine.write_comic(comic_file, comic_file_name, comic_file_exte, delete_files, remove_from_filename)
+            print("Saved file: " + comic_file_name + ".cbz")
         elif int(user_choice) in range(len(sorted_filename_length_dict)):
             # User's choice where he/she chose to file themselves.
             chosen_file = sorted_filename_length_dict[int(user_choice)][1][0]
@@ -81,6 +83,7 @@ def user_choice_parser(user_choice):
             print("Deleting:")
             print_file_list(delete_files)
             engine.write_comic(comic_file, comic_file_name, comic_file_exte, delete_files, remove_from_filename)
+            print("Saved file: " + comic_file_name + ".cbz")
         else:
             # Not valid user input
             print("There is no such option. Skipping to next step.")
@@ -145,10 +148,10 @@ for comic_file in current_dir_files:
     remove_from_filename = [] # List for strings that will be removed from page's filename if user provides it. First tring is used to search for the part that needs to be deleted and the second, if provided, will be used to replace previous string in filename.
 
     ## Loops thought all the files and passes the allong if they have "cbz" or "cbr" extention.
-    if comic_file[-3:] == "cbz" or comic_file[-3:] == "cbr":
+    if comic_file[-4:] == ".cbz" or comic_file[-4:] == ".cbr":
 
-        comic_file_name = comic_file[:-3] # Variable saves file name
-        comic_file_exte = comic_file[-3:] # Variable saves file extention
+        comic_file_name = comic_file[:-4] # Variable saves file name
+        comic_file_exte = comic_file[-4:] # Variable saves file extention
         print()
         print("*********************")
         print("Working on: " + comic_file)

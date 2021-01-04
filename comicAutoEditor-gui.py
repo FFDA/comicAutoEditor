@@ -5,7 +5,7 @@ from sys import argv, exit
 
 from os.path import expanduser, split
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QDesktopWidget, QGridLayout, QVBoxLayout, QLabel, QPushButton, QGroupBox, QCheckBox, QLineEdit, QTableWidget, QTableView, QFileDialog, QTableWidgetItem, QAbstractScrollArea
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QDesktopWidget, QGridLayout, QVBoxLayout, QLabel, QPushButton, QGroupBox, QCheckBox, QLineEdit, QTableWidget, QTableView, QFileDialog, QTableWidgetItem, QAbstractItemView
 from PyQt5.QtCore import Qt
 
 from engine import Engine
@@ -20,16 +20,8 @@ class ComicAutoEditorGui(QMainWindow):
         self.center() # Centers (more or less) window in the screen on start up
         self.setWindowTitle("Comic Editor") # Setting window title
         main_widget = MainWidget(self) # Initiating QWidget that will be only window for this program
-        self.setCentralWidget(main_widget) # Setting MainWidget as central widget for QMainWindow
+        self.setCentralWidget(main_widget) # Setting MainWidget as central widget for QMainWindow   
         self.show() # Displaying QMainWindow
-
-        ## Variables needed for Engine Functions
-        self.comic_file = ""
-        self.comic_file_name = ""
-        self.comic_file_exte = ""
-        self.sorted_filename_length_dict = dict()
-        self.sub_folder_toggle = 0
-        self.thumbs_db = (0, "")
 
     def center(self):
         # Copied this function from https://gist.github.com/saleph/163d73e0933044d0e2c4
@@ -53,6 +45,16 @@ class MainWidget(QWidget):
     def __init__(self, parent):
         ## Initiating MainWidget
         super(MainWidget, self).__init__(parent) ## I have no idea what kind of magic going on here
+        
+        ## Variables needed for Engine Functions
+        self.comic_file = ""
+        self.comic_file_name = ""
+        self.comic_file_exte = ""
+        self.sorted_filename_length_dict = dict()
+        self.sub_folder_toggle = 0
+        self.thumbs_db = (0, "")
+        self.delete_files = []
+        
         self.init_UI()
 
     def init_UI(self):
@@ -93,10 +95,12 @@ class MainWidget(QWidget):
         self.button_convert_to_cbz = QPushButton("Convert to CBZ")
         self.button_convert_to_cbz.setToolTip("Will not change content of the archive.")
         self.button_convert_to_cbz.setEnabled(False)
+        self.button_convert_to_cbz.clicked.connect(self.convert_to_cbz_clicked)
 
         self.button_remove_subfolder_thumbs = QPushButton("Remove Trash")
         self.button_remove_subfolder_thumbs.setToolTip("Only removes subfolder and thumbs.db in archive. Will not remove pages.")
         self.button_remove_subfolder_thumbs.setEnabled(False)
+        self.button_remove_subfolder_thumbs.clicked.connect(self.button_remove_subfolder_thumbs_clicked)
 
         self.button_fix_comic = QPushButton("Fix Comic")
         self.button_fix_comic.setToolTip("Removes selected images, subfolder, thumbs.db and renames pages if chosen.")
@@ -131,19 +135,23 @@ class MainWidget(QWidget):
             self.sorted_filename_length_dict = dict()
             self.sub_folder_toggle = 0
             self.thumbs_db = (0, "")
+            self.delete_files = []
 
             # Disabling all buttons for new file
             self.button_convert_to_cbz.setEnabled(False)
             self.button_remove_subfolder_thumbs.setEnabled(False)
             self.button_fix_comic.setEnabled(False)
 
-            chosen_file_exte = split(chosen_file)[1][-3:].lower() # Saves user's chosen's file extention to a variable
+            # Disabling connection to the table
+            self.comic_file_table.disconnect()
 
-            if chosen_file_exte == "cbz" or chosen_file_exte == "cbr":
+            chosen_file_exte = split(chosen_file)[1][-4:].lower() # Saves user's chosen's file extention to a variable
+
+            if chosen_file_exte == ".cbz" or chosen_file_exte == ".cbr":
                 ## Checks if user's selected file actually ends with.
                 ## Set's variables, shows message to user with file name and enables buttons if True
                 self.comic_file = chosen_file
-                self.comic_file_name = split(self.comic_file)[1][:-3]
+                self.comic_file_name = split(self.comic_file)[1][:-4]
                 self.comic_file_exte = chosen_file_exte
 
                 # Printin file that is being worked on.
@@ -152,7 +160,7 @@ class MainWidget(QWidget):
                 self.label_message.clear() # Clears message in case user selected a not comic file previously or working with multiple file in a row.
 
                 # Checking if comic arhcive is rar file. If true enabling "Convert to CBZ button"
-                if self.comic_file_exte == "cbr":
+                if self.comic_file_exte == ".cbr":
                     self.button_convert_to_cbz.setEnabled(True)
 
                 # Getting more variables that will be used to by other functions. For more info check engine.check_comic.
@@ -176,18 +184,54 @@ class MainWidget(QWidget):
     def display_comic_files(self):
     ## Adds all comic archive files to the QtableWidget and marks checkmarks as suggestion based on sorted_file_length_dict
 
-        comic_file_list = engine.archive_file_list(self.comic_file, self.comic_file_name, self.comic_file_exte) # Getting archive's file list from engine.
-        self.comic_file_table.setRowCount(len(comic_file_list)) # Setting tables row count to the count of files inside archive
-        
-        for item in range(len(comic_file_list)):
+        self.comic_file_list = engine.archive_file_list(self.comic_file, self.comic_file_name, self.comic_file_exte) # Getting archive's file list from engine.
+        self.comic_file_table.setRowCount(len(self.comic_file_list)) # Setting tables row count to the count of files inside archive
+
+        ## This makes two presumptions. First, is that first (shortest) file in dictionary will be the one that needs to be removed. Second, that it will be mention just once. Dictionary is already sorted by key (filename length) and this if statement checks if this length one found just once. Adding it to the delete_files list if true.
+        if self.sorted_filename_length_dict[0][1][1] == 1:
+            self.delete_files.append(self.sorted_filename_length_dict[0][1][0])
+
+        ## If thumbs_db toggle is switched adding it to the delete file list.
+        if self.thumbs_db[0] == 1:
+            self.delete_files.append(self.thumbs_db[1])
+      
+        for item in range(len(self.comic_file_list)):
             ## Adding every item from archive to the table
             item_checkbox_detele = QTableWidgetItem()
-            item_checkbox_detele.setCheckState(Qt.Checked) # Setting checkmark as checked
+            if self.comic_file_list[item] in self.delete_files:
+                item_checkbox_detele.setCheckState(Qt.Unchecked) # Setting checkmark as Unchecked. Files is marked for deletion
+            else:
+                item_checkbox_detele.setCheckState(Qt.Checked)
             item_checkbox_detele.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) # Checkmark's cell not editable, but state still can be changed.
-            item_filename = QTableWidgetItem(split(comic_file_list[item])[1]) # Getting just a filename, without a path to the file in archive.
+            item_filename = QTableWidgetItem(split(self.comic_file_list[item])[1]) # Getting just a filename, without a path to the file in archive.
             item_filename.setFlags(Qt.ItemIsEnabled) # Filename's cell not editable
             self.comic_file_table.setItem(item, 0, item_checkbox_detele)
             self.comic_file_table.setItem(item, 1, item_filename)
+        
+        print(self.delete_files) # Trinti
+        self.comic_file_table.cellChanged.connect(self.comic_file_table_cell_changed)
+
+    def convert_to_cbz_clicked(self):
+        ## This fuction exists because it is not possible to pass variables using connect
+        engine.convert_to_cbz(self.comic_file, self.comic_file_name)
+        self.label_message.setText("Converted " + self.comic_file_name + " to cbz")
+
+    def button_remove_subfolder_thumbs_clicked(self):
+        pass
+
+    def comic_file_table_cell_changed(self, row, column):
+        ## Function triggred when user toggles checkmark in table.
+
+        clicked_item_state = self.comic_file_table.item(row, column).checkState()
+        clicked_item_filename = self.comic_file_list[row] # Gets filename for the checkmark from comic file list based on checkmark's row.
+        
+        ## Depending of the state of the checkmark checks if filename is marked for deletion. Depending on the that removes or adds filename to delete_list
+        if clicked_item_state == Qt.Checked:
+            if clicked_item_filename in self.delete_files:
+                self.delete_files.remove(clicked_item_filename)
+        elif clicked_item_state == Qt.Unchecked:
+            if clicked_item_filename not in self.delete_files:
+                self.delete_files.append(clicked_item_filename)
 
 if __name__ == "__main__":
     ComicAutoEditor = QApplication(argv)

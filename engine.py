@@ -30,7 +30,7 @@ class Engine:
         filename_length_dict = dict() # Dictionary that will be used to add all different files sorted by the length. Idea is that all comic pages names will be the same length.
 
         ## Because zip and rar uses different modules it has to be detected and seperated.
-        if comic_file_exte.lower() == "cbz":
+        if comic_file_exte.lower() == ".cbz":
             comic = ZipFile(comic_file)
         else: 
             comic = RarFile(comic_file)
@@ -67,7 +67,7 @@ class Engine:
         # cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True) # Commented out, because on python3.6 compresslevel and strict_timestamps are not supported
 
         ## Because zip and rar uses different modules it has to be detected and seperated.
-        if comic_file_exte.lower() == "cbz":
+        if comic_file_exte.lower() == ".cbz":
             comic = ZipFile(comic_file, mode="r")
         else: 
             comic = RarFile(comic_file, mode="r")
@@ -79,9 +79,6 @@ class Engine:
             ## Goes through every page of orginal archive again. Looks for a filename that matches the one that user wants to delete. Skips it and prints a message that it is deleted. The rest files are saved in temp directory
                 if page not in delete_files:
                     comic.extract(page, dir) # Extracts file to full path, so if archive has a subfolder it will be created too.
-                else:
-                    # print("Deleted " + delete_file) # I might delete this message later
-                    pass
 
             for folder in walk(dir):
             ## Goes through directories and files in temp directory.
@@ -96,7 +93,7 @@ class Engine:
                         cbz_comic_archive.write(join(folder[0], page), arcname=basename(page.replace(remove_from_filename[0], remove_from_filename[1])))
 
         cbz_comic_archive.close() # Closes new comics archive.
-        print("Saved file: " + self.comic_save_location + comic_file_name + "cbz")
+        
 
     def archive_file_list(self, comic_file, comic_file_name, comic_file_exte):
         ### Gets all files in the archive and returns them
@@ -104,7 +101,7 @@ class Engine:
         archive_file_list = []
 
         ## Because zip and rar uses different modules it has to be detected and seperated.
-        if comic_file_exte.lower() == 'cbz':
+        if comic_file_exte.lower() == ".cbz":
             comic = ZipFile(comic_file)
         else: 
             comic = RarFile(comic_file)
@@ -122,7 +119,7 @@ class Engine:
         ### This function only converts comic's archive to cbz without deleting files or folders
         ### I do not know what will happen if there would be two folders inside archive. Maybe one day I'll find out.
 
-        cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True)
+        cbz_comic_archive = ZipFile(self.comic_save_location + comic_file_name + ".cbz", mode="w", compression=ZIP_STORED, allowZip64=True)
         # cbz_comic_archive = ZipFile(comic_save_location + comic_file_name + "cbz", mode="w", compression=ZIP_STORED, allowZip64=True, compresslevel=None, strict_timestamps=True) # Commented out, because on python3.6 compresslevel and strict_timestamps are not supported
 
         with TemporaryDirectory() as dir:
@@ -135,7 +132,6 @@ class Engine:
 
             for folder in walk(dir):
             ## Looping thought all folders/files
-                print("Katalogas")
                 if folder[1] != []:
                     base = folder[1][0]
                 else:
