@@ -59,23 +59,26 @@ class MainWidget(QWidget):
         self.label_filename = QLabel("No comic is selected")
         self.label_filename.setAlignment(Qt.AlignCenter)
 
-        button_select_comic = QPushButton("Select Comic")
-        button_select_comic.clicked.connect(self.choose_comic_file)
+        self.button_select_comic = QPushButton("Select Comic")
+        self.button_select_comic.clicked.connect(self.choose_comic_file)
 
         page_filename_groupbox = QGroupBox("Page Filename")
         page_filename_groupbox_layout = QVBoxLayout()
-        page_filename_remove_checkbox = QCheckBox("Remove")
-        page_filename_remove_line_edit = QLineEdit()
-        page_filename_remove_line_edit.setEnabled(False)
-        page_filename_remove_line_edit.setPlaceholderText("Text you want to remove.")
-        page_filename_replace_checkbox = QCheckBox("Replace with")
-        page_filename_replace_line_edit = QLineEdit()
-        page_filename_replace_line_edit.setEnabled(False)
-        page_filename_replace_line_edit.setPlaceholderText("Text you want to replace with")
-        page_filename_groupbox_layout.addWidget(page_filename_remove_checkbox)
-        page_filename_groupbox_layout.addWidget(page_filename_remove_line_edit)
-        page_filename_groupbox_layout.addWidget(page_filename_replace_checkbox)
-        page_filename_groupbox_layout.addWidget(page_filename_replace_line_edit)
+        self.page_filename_remove_checkbox = QCheckBox("Remove")
+        self.page_filename_remove_checkbox.stateChanged.connect(self.page_filename_remove_checkbox_state_changed)
+        self.page_filename_remove_line_edit = QLineEdit()
+        self.page_filename_remove_line_edit.setEnabled(False)
+        self.page_filename_remove_line_edit.setPlaceholderText("Text you want to remove.")
+        self.page_filename_replace_checkbox = QCheckBox("Replace with")
+        self.page_filename_replace_checkbox.stateChanged.connect(self.page_filename_replace_checkbox_state_changed)
+        self.page_filename_replace_checkbox.setEnabled(False)
+        self.page_filename_replace_line_edit = QLineEdit()
+        self.page_filename_replace_line_edit.setEnabled(False)
+        self.page_filename_replace_line_edit.setPlaceholderText("Text you want to replace with")
+        page_filename_groupbox_layout.addWidget(self.page_filename_remove_checkbox)
+        page_filename_groupbox_layout.addWidget(self.page_filename_remove_line_edit)
+        page_filename_groupbox_layout.addWidget(self.page_filename_replace_checkbox)
+        page_filename_groupbox_layout.addWidget(self.page_filename_replace_line_edit)
         page_filename_groupbox.setLayout(page_filename_groupbox_layout)
 
         self.comic_file_table = QTableWidget()
@@ -98,13 +101,14 @@ class MainWidget(QWidget):
         self.button_fix_comic = QPushButton("Fix Comic")
         self.button_fix_comic.setToolTip("Removes selected images, subfolder, thumbs.db and renames pages if chosen.")
         self.button_fix_comic.setEnabled(False)
+        self.button_fix_comic.clicked.connect(self.button_fix_comic_clicked)
 
         self.label_message = QLabel()
         self.label_message.setAlignment(Qt.AlignCenter)
 
         # Adding all UI elements to the layout
         layout.addWidget(self.label_filename, 0, 0, 1, 6)
-        layout.addWidget(button_select_comic, 0, 6, 1, 1)
+        layout.addWidget(self.button_select_comic, 0, 6, 1, 1)
         layout.addWidget(page_filename_groupbox, 1, 0, 3, 7)
         layout.addWidget(self.comic_file_table, 5, 0, 8, 6)
         layout.addWidget(self.button_convert_to_cbz, 9, 6, 1, 1)
@@ -116,8 +120,7 @@ class MainWidget(QWidget):
     def choose_comic_file(self):
         ## Prompts user to select a file and checks selected file. Set's variables used by other functions later.
 
-        # chosen_file = QFileDialog.getOpenFileName(self, "Choose Comic File", expanduser("~"), "Comics (*.cbr *.cbz)")[0] # Prompts user to select comic file and saves result to variable
-        chosen_file = QFileDialog.getOpenFileName(self, "Choose Comic File", expanduser("/mnt/Parsiusta/"), "Comics (*.cbr *.cbz)")[0] # Trinti
+        chosen_file = QFileDialog.getOpenFileName(self, "Choose Comic File", expanduser("~"), "Comics (*.cbr *.cbz)")[0] # Prompts user to select comic file and saves result to variable
         
         if chosen_file != "": # Checks if user actually selected a file
 
@@ -199,12 +202,15 @@ class MainWidget(QWidget):
 
     def convert_to_cbz_clicked(self):
         ## This fuction exists because it is not possible to pass variables using connect
+        self.disable_buttons()
         engine.convert_to_cbz(self.comic_file, self.comic_file_name)
+        self.enable_buttons()
         self.label_message.setText("Converted " + self.comic_file_name + " to cbz")
 
     def button_remove_subfolder_thumbs_clicked(self):
         ## This function removes only subfolder and thumbs.db if they exists in the archive.
         ## Even if any other file will be selected for deletion it won't be deleted.
+        self.disable_buttons()
         
         local_delete_files = [] # Instead of global delete file, local one will be used.
         
@@ -213,6 +219,9 @@ class MainWidget(QWidget):
             local_delete_files.append(self.thumbs_db[1])
         
         engine.write_comic(self.comic_file, self.comic_file_name, self.comic_file_exte, local_delete_files, []) # Passing empty list for remove_from_filename. This function do not change filenames.
+
+        self.enable_buttons()
+        self.label_message.setText("Extra file removed!")
 
     def comic_file_table_cell_changed(self, row, column):
         ## Function triggred when user toggles checkmark in table.
@@ -227,9 +236,67 @@ class MainWidget(QWidget):
         elif clicked_item_state == Qt.Unchecked:
             if clicked_item_filename not in self.delete_files:
                 self.delete_files.append(clicked_item_filename)
+    
+    def page_filename_remove_checkbox_state_changed(self):
+        ## Enables/disables page_filename_remove_line_edit depending on page_filename_remove_checkbox_state
+        if self.page_filename_remove_checkbox.checkState() == Qt.Checked:
+            self.page_filename_remove_line_edit.setEnabled(True)
+            self.page_filename_replace_checkbox.setEnabled(True) # Enables "Replace With" checkbox
+        elif self.page_filename_remove_checkbox.checkState() == Qt.Unchecked:
+            self.page_filename_remove_line_edit.setEnabled(False)
+            self.page_filename_remove_line_edit.clear()
+            if self.page_filename_replace_checkbox.checkState() == Qt.Checked:
+            ## Checks status of "Replace with" checkbox. If it's checked - removes the checkbox and disables it.
+                self.page_filename_replace_checkbox.setChecked(False)
+                self.page_filename_replace_checkbox.setEnabled(False)
+            self.remove_from_filename = [] # Resets remove_from_filename, otherwise there will be BUGS.
+
+    def page_filename_replace_checkbox_state_changed(self):
+        ## Enables/disables page_filename_remove_line_edit depending on page_filename_remove_checkbox_state
+        if self.page_filename_replace_checkbox.checkState() == Qt.Checked:
+            self.page_filename_replace_line_edit.setEnabled(True)
+        elif self.page_filename_replace_checkbox.checkState() == Qt.Unchecked:
+            if self.page_filename_replace_line_edit.text() in self.remove_from_filename:
+            ## Removes text that user planned to replace with removed text.
+                self.remove_from_filename.remove(self.page_filename_replace_line_edit.text())
+            self.page_filename_replace_line_edit.setEnabled(False)
+            self.page_filename_replace_line_edit.clear()
+    
+    def button_fix_comic_clicked(self):
+        ## This functions inplements main funcction of this program. To actually remove page from comc archive, rename files if chosen.
+        self.disable_buttons()
+        self.remove_from_filename = [] # Resets the list, otherwise it would add the same items in the list to infinity.
+        if self.page_filename_remove_checkbox.checkState() == Qt.Checked:
+        # If remove checkbox is marked appends text from remove_line_edit to remove_from_filename.
+            self.remove_from_filename.append(self.page_filename_remove_line_edit.text())
+            if self.page_filename_replace_checkbox.checkState() == Qt.Checked:
+                # If rename checkbox marked appends what's written in replace_line_edit to remove_from_filename.
+                self.remove_from_filename.append(self.page_filename_replace_line_edit.text())
+            else:
+                # If rename checkbox isn't marked appends empty string to the remove_from_filename list
+                self.remove_from_filename.append("")
+        
+        engine.write_comic(self.comic_file, self.comic_file_name, self.comic_file_exte, self.delete_files, self.remove_from_filename)
+        self.enable_buttons()
+
+        self.label_message.setText("Fixed comic: " + self.comic_file_name + ".cbz") # prints messages to user what file was fixed.
+    
+    def disable_buttons(self):
+        ## To Disable buttons before program starts working archive.
+        self.button_select_comic.setEnabled(False)
+        self.button_convert_to_cbz.setEnabled(False)
+        self.button_remove_subfolder_thumbs.setEnabled(False)
+        self.button_fix_comic.setEnabled(False)
+    
+    def enable_buttons(self):
+        ## To Enable buttons after program finishes saving archive.
+        self.button_select_comic.setEnabled(True)
+        self.button_convert_to_cbz.setEnabled(True)
+        self.button_remove_subfolder_thumbs.setEnabled(True)
+        self.button_fix_comic.setEnabled(True)
 
     def init_variables(self):
-    ## Variables needed for Engine Functions
+    ## Variables needed for Engine Functions and other GUI elements that need to be reset before loading new file.
         self.comic_file = ""
         self.comic_file_name = ""
         self.comic_file_exte = ""
