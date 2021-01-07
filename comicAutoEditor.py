@@ -143,12 +143,12 @@ current_dir_files = listdir() # Getting all the filenames in current working dir
 
 for comic_file in current_dir_files:
 
-    delete_files = [] # List containing all filenames to delete
-    thumbs_db = (0, "") # Tuple for detecting thumbs.db in archive
-    remove_from_filename = [] # List for strings that will be removed from page's filename if user provides it. First tring is used to search for the part that needs to be deleted and the second, if provided, will be used to replace previous string in filename.
-
     ## Loops thought all the files and passes the allong if they have "cbz" or "cbr" extention.
     if comic_file[-4:] == ".cbz" or comic_file[-4:] == ".cbr":
+
+        delete_files = [] # List containing all filenames to delete
+        thumbs_db = (0, "") # Tuple for detecting thumbs.db in archive
+        remove_from_filename = [] # List for strings that will be removed from page's filename if user provides it. First tring is used to search for the part that needs to be deleted and the second, if provided, will be used to replace previous string in filename.
 
         comic_file_name = comic_file[:-4] # Variable saves file name
         comic_file_exte = comic_file[-4:] # Variable saves file extention
@@ -180,9 +180,17 @@ for comic_file in current_dir_files:
             print("Comic will still work normaly.")
             print("")
             delete_files.append(thumbs_db[1])
+        
+        ## Marks files that do not end with .jpg or .xml for deletion
+        archive_file_list = engine.archive_file_list(comic_file, comic_file_name, comic_file_exte)
+        for page in archive_file_list:
+            if page[-4:] != ".jpg" and page[-4:] != ".xml" and page not in delete_files:
+                delete_files.append(page)
+
+        print("Files marked for deletion:")
+        print_file_list(delete_files)
 
         user_promt_for_deletion()
 
-        print("")
 
 exit()

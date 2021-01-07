@@ -44,7 +44,7 @@ class Engine:
         
         ## Loops though all the files in the comic archive. Key is length of the filename, value - list that contains first filename that has the that length and count how many time that length of file name has been detected.
         for page in comic.namelist():
-            if page.lower() == "thumbs.db":
+            if split(page)[1].lower() == "thumbs.db":
                 thumbs_db = (1, page)
             elif page[-3:].lower() == "jpg":
                 if len(page) not in filename_length_dict:

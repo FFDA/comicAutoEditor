@@ -54,6 +54,8 @@ class MainWidget(QWidget):
         ## Function that makes UI for the program
         layout = QGridLayout() # Setting QWidget layout to be grid
 
+        self.choose_comic_file_directory = expanduser("~") # This initiaded here instead of init_variables, because it will be changed during usage of the program to remember last place user chose a file and it doesn't need to be reset every time user choose another file.
+
         ## All UI elemnts in order they are added
         ## Variable names are self explanatory
         self.label_filename = QLabel("No comic is selected")
@@ -94,7 +96,7 @@ class MainWidget(QWidget):
         self.button_convert_to_cbz.clicked.connect(self.convert_to_cbz_clicked)
 
         self.button_remove_subfolder_thumbs = QPushButton("Remove Trash")
-        self.button_remove_subfolder_thumbs.setToolTip("Only removes subfolder and thumbs.db in archive. Will not remove pages.")
+        self.button_remove_subfolder_thumbs.setToolTip("Only removes subfolder and all extra files. Will not remove pages.")
         self.button_remove_subfolder_thumbs.setEnabled(False)
         self.button_remove_subfolder_thumbs.clicked.connect(self.button_remove_subfolder_thumbs_clicked)
 
@@ -120,9 +122,11 @@ class MainWidget(QWidget):
     def choose_comic_file(self):
         ## Prompts user to select a file and checks selected file. Set's variables used by other functions later.
 
-        chosen_file = QFileDialog.getOpenFileName(self, "Choose Comic File", expanduser("~"), "Comics (*.cbr *.cbz)")[0] # Prompts user to select comic file and saves result to variable
+        chosen_file = QFileDialog.getOpenFileName(self, "Choose Comic File", self.choose_comic_file_directory, "Comics (*.cbr *.cbz)")[0] # Prompts user to select comic file and saves result to variable
         
         if chosen_file != "": # Checks if user actually selected a file
+            
+            self.choose_comic_file_directory = split(chosen_file)[0]
 
             # Resetting all variables for new file
             self.init_variables()
@@ -131,7 +135,7 @@ class MainWidget(QWidget):
             self.button_convert_to_cbz.setEnabled(False)
             self.button_remove_subfolder_thumbs.setEnabled(False)
             self.button_fix_comic.setEnabled(False)
-
+            
             # Disabling connection to the table
             self.comic_file_table.disconnect()
 
@@ -147,6 +151,11 @@ class MainWidget(QWidget):
                 # Printin file that is being worked on.
                 self.label_filename.setText(self.comic_file_name + self.comic_file_exte)
 
+                # Removing all # from filename if user passed -s as an argument when launching program.
+                if len(argv) > 1:
+                    if argv[1] == "-s":
+                        self.comic_file_name = self.comic_file_name.replace("#", "")
+
                 self.label_message.clear() # Clears message in case user selected a not comic file previously or working with multiple file in a row.
 
                 # Checking if comic arhcive is rar file. If true enabling "Convert to CBZ button"
@@ -156,7 +165,7 @@ class MainWidget(QWidget):
                 # Getting more variables that will be used to by other functions. For more info check engine.check_comic.
                 self.sorted_filename_length_dict, self.sub_folder_toggle, self.thumbs_db = engine.check_comic(self.comic_file, self.comic_file_name, self.comic_file_exte)
 
-                # Enabling button "Remove Trash" if toggles are switched by check_engine funcktion
+                # Enabling button "Remove Trash" if toggles are switched by check_engine function
                 if self.sub_folder_toggle == 1 or self.thumbs_db[0] == 1:
                     self.button_remove_subfolder_thumbs.setEnabled(True)
                 
@@ -166,6 +175,8 @@ class MainWidget(QWidget):
                 self.label_message.clear() # Clears message in case user selected a not comic file previously or working with multiple file in a row.
 
                 self.display_comic_files()
+
+                self.comic_file_table.sortByColumn(0, Qt.DescendingOrder)
 
             else:
                 ## Prints a message to user if he selected not comic file.
@@ -177,6 +188,10 @@ class MainWidget(QWidget):
         self.comic_file_list = engine.archive_file_list(self.comic_file, self.comic_file_name, self.comic_file_exte) # Getting archive's file list from engine.
         self.comic_file_table.setRowCount(len(self.comic_file_list)) # Setting tables row count to the count of files inside archive
 
+        ## Prints a message if a subfolder is detected.
+        if self.sub_folder_toggle == 1:    
+            self.label_message.setText("There is a subfolder!")
+
         ## This makes two presumptions. First, is that first (shortest) file in dictionary will be the one that needs to be removed. Second, that it will be mention just once. Dictionary is already sorted by key (filename length) and this if statement checks if this length one found just once. Adding it to the delete_files list if true.
         if self.sorted_filename_length_dict[0][1][1] == 1:
             self.delete_files.append(self.sorted_filename_length_dict[0][1][0])
@@ -186,6 +201,11 @@ class MainWidget(QWidget):
             self.delete_files.append(self.thumbs_db[1])
       
         for item in range(len(self.comic_file_list)):
+            
+            ## Checkicg if file extentions isn't *.jpg or *.xml. If not it goes to delete_list.
+            if self.comic_file_list[item][-4:] != ".xml" and self.comic_file_list[item][-4:] != ".jpg" and self.comic_file_list[item] not in self.delete_files:
+                    self.delete_files.append(self.comic_file_list[item])
+            
             ## Adding every item from archive to the table
             item_checkbox_detele = QTableWidgetItem()
             if self.comic_file_list[item] in self.delete_files:
@@ -198,6 +218,7 @@ class MainWidget(QWidget):
             self.comic_file_table.setItem(item, 0, item_checkbox_detele)
             self.comic_file_table.setItem(item, 1, item_filename)
         
+        self.comic_file_table.sortByColumn(0, Qt.AscendingOrder)
         self.comic_file_table.cellChanged.connect(self.comic_file_table_cell_changed)
 
     def convert_to_cbz_clicked(self):
