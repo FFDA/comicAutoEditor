@@ -183,8 +183,11 @@ for comic_file in current_dir_files:
         
         ## Marks files that do not end with .jpg or .xml for deletion
         archive_file_list = engine.archive_file_list(comic_file, comic_file_name, comic_file_exte)
+        
+        ignore_file_exte = [".jpg", ".png", ".xml"] # extension that will be not marked for deletion
+        
         for page in archive_file_list:
-            if page[-4:] != ".jpg" and page[-4:] != ".xml" and page not in delete_files:
+            if page[-4:] not in ignore_file_exte and page not in delete_files:
                 delete_files.append(page)
 
         print("Files marked for deletion:")

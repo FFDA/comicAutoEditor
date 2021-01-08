@@ -5,8 +5,9 @@ from sys import argv, exit
 
 from os.path import expanduser, split
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QDesktopWidget, QGridLayout, QVBoxLayout, QLabel, QPushButton, QGroupBox, QCheckBox, QLineEdit, QTableWidget, QTableView, QFileDialog, QTableWidgetItem, QAbstractItemView
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QDesktopWidget, QGridLayout, QVBoxLayout, QLabel, QPushButton, QGroupBox, QCheckBox, QLineEdit, QTableView, QFileDialog
+from PyQt5.QtCore import Qt, QSortFilterProxyModel
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
 
 from engine import Engine
 engine = Engine()
@@ -39,7 +40,6 @@ class ComicAutoEditorGui(QMainWindow):
         # top left of rectangle becomes top left of window centering it
         self.move(window_geometry.topLeft())
 
-
 class MainWidget(QWidget):
 
     def __init__(self, parent):
@@ -47,6 +47,9 @@ class MainWidget(QWidget):
         super(MainWidget, self).__init__(parent) ## I have no idea what kind of magic going on here
         
         self.init_variables()
+        
+        ## This signal_count counts how many comics user opened. This is needed to disconnect "self.comic_file_table_model.itemChanged.connect(self.comic_file_table_cell_changed)"
+        self.signal_count = 0
         
         self.init_UI()
 
@@ -83,8 +86,18 @@ class MainWidget(QWidget):
         page_filename_groupbox_layout.addWidget(self.page_filename_replace_line_edit)
         page_filename_groupbox.setLayout(page_filename_groupbox_layout)
 
-        self.comic_file_table = QTableWidget()
-        self.comic_file_table.setColumnCount(2)
+        # Setting up table model for table that will contain items inside comic's archive
+        self.comic_file_table_model = QStandardItemModel()
+        self.comic_file_table_model.setColumnCount(2)
+
+        self.comic_file_table_proxy_model = QSortFilterProxyModel()
+        self.comic_file_table_proxy_model.setSourceModel(self.comic_file_table_model)
+        self.comic_file_table_proxy_model.setSortRole(10)
+        self.comic_file_table_proxy_model.sort(0, Qt.AscendingOrder)
+        
+        # Setting up view for the table that will display items inside comic's archive
+        self.comic_file_table = QTableView()
+        self.comic_file_table.setModel(self.comic_file_table_proxy_model)
         self.comic_file_table.horizontalHeader().hide()
         self.comic_file_table.verticalHeader().hide()
         self.comic_file_table.resizeColumnToContents(0)
@@ -136,8 +149,9 @@ class MainWidget(QWidget):
             self.button_remove_subfolder_thumbs.setEnabled(False)
             self.button_fix_comic.setEnabled(False)
             
-            # Disabling connection to the table
-            self.comic_file_table.disconnect()
+            # Disabling connection to the table if there is one.
+            if self.comic_file_table_model.receivers(self.comic_file_table_model.itemChanged) > 0:
+                self.comic_file_table_model.itemChanged.disconnect(self.comic_file_table_cell_changed)
 
             chosen_file_exte = split(chosen_file)[1][-4:].lower() # Saves user's chosen's file extention to a variable
 
@@ -176,17 +190,19 @@ class MainWidget(QWidget):
 
                 self.display_comic_files()
 
-                self.comic_file_table.sortByColumn(0, Qt.DescendingOrder)
+                self.comic_file_table.scrollToTop()
 
             else:
                 ## Prints a message to user if he selected not comic file.
                 self.label_message.setText("You have to select cbr or cbz file.")
 
     def display_comic_files(self):
-    ## Adds all comic archive files to the QtableWidget and marks checkmarks as suggestion based on sorted_file_length_dict
+    ## Adds all comic archive files to the QtableWidget and checkmarks as suggestion based on sorted_file_length_dict
+
+        ignore_file_exte = [".jpg", ".png", ".xml"] # extension that will be not marked for deletion
 
         self.comic_file_list = engine.archive_file_list(self.comic_file, self.comic_file_name, self.comic_file_exte) # Getting archive's file list from engine.
-        self.comic_file_table.setRowCount(len(self.comic_file_list)) # Setting tables row count to the count of files inside archive
+        self.comic_file_table_model.setRowCount(len(self.comic_file_list)) # Setting tables row count to the count of files inside archive
 
         ## Prints a message if a subfolder is detected.
         if self.sub_folder_toggle == 1:    
@@ -203,23 +219,22 @@ class MainWidget(QWidget):
         for item in range(len(self.comic_file_list)):
             
             ## Checkicg if file extentions isn't *.jpg or *.xml. If not it goes to delete_list.
-            if self.comic_file_list[item][-4:] != ".xml" and self.comic_file_list[item][-4:] != ".jpg" and self.comic_file_list[item] not in self.delete_files:
+            if self.comic_file_list[item][-4:].lower() not in ignore_file_exte and self.comic_file_list[item] not in self.delete_files:
                     self.delete_files.append(self.comic_file_list[item])
             
             ## Adding every item from archive to the table
-            item_checkbox_detele = QTableWidgetItem()
+            item_checkbox_detele = QStandardItem()
             if self.comic_file_list[item] in self.delete_files:
                 item_checkbox_detele.setCheckState(Qt.Unchecked) # Setting checkmark as Unchecked. Files is marked for deletion
             else:
                 item_checkbox_detele.setCheckState(Qt.Checked)
             item_checkbox_detele.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled) # Checkmark's cell not editable, but state still can be changed.
-            item_filename = QTableWidgetItem(split(self.comic_file_list[item])[1]) # Getting just a filename, without a path to the file in archive.
+            item_filename = QStandardItem(split(self.comic_file_list[item])[1]) # Getting just a filename, without a path to the file in archive.
             item_filename.setFlags(Qt.ItemIsEnabled) # Filename's cell not editable
-            self.comic_file_table.setItem(item, 0, item_checkbox_detele)
-            self.comic_file_table.setItem(item, 1, item_filename)
+            self.comic_file_table_model.setItem(item, 0, item_checkbox_detele)
+            self.comic_file_table_model.setItem(item, 1, item_filename)
         
-        self.comic_file_table.sortByColumn(0, Qt.AscendingOrder)
-        self.comic_file_table.cellChanged.connect(self.comic_file_table_cell_changed)
+        self.comic_file_table_model.itemChanged.connect(self.comic_file_table_cell_changed)
 
     def convert_to_cbz_clicked(self):
         ## This fuction exists because it is not possible to pass variables using connect
@@ -244,11 +259,13 @@ class MainWidget(QWidget):
         self.enable_buttons()
         self.label_message.setText("Extra file removed!")
 
-    def comic_file_table_cell_changed(self, row, column):
+    def comic_file_table_cell_changed(self, clicked_checkbox):
         ## Function triggred when user toggles checkmark in table.
 
-        clicked_item_state = self.comic_file_table.item(row, column).checkState()
-        clicked_item_filename = self.comic_file_list[row] # Gets filename for the checkmark from comic file list based on checkmark's row.
+        clicked_checkbox_location = clicked_checkbox.index()
+
+        clicked_item_state = clicked_checkbox.checkState()
+        clicked_item_filename = self.comic_file_list[clicked_checkbox_location.row()] # Gets filename for the checkmark from comic file list based on checkmark's row.
         
         ## Depending of the state of the checkmark checks if filename is marked for deletion. Depending on the that removes or adds filename to delete_list
         if clicked_item_state == Qt.Checked:
